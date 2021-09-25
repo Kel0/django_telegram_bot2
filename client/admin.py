@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Client, Franсhise, BalanceHistory, SalePointType, SalePoint, FAQ, SpecialOffer, Role, ClientRequest
+from .models import Client, Franchise, BalanceHistory, SalePoint, FAQ, SpecialOffer, Role, ClientRequest
 
 
 @admin.register(ClientRequest)
@@ -9,9 +9,9 @@ class ClientRequest(admin.ModelAdmin):
     list_filter = ("request_type", "status")
 
 
-@admin.register(Franсhise)
+@admin.register(Franchise)
 class FranсhiseAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "balance", "bin")
+    list_display = ("id", "name", "balance")
 
 
 @admin.register(BalanceHistory)
@@ -34,14 +34,7 @@ class RoleAdmin(admin.ModelAdmin):
 
 @admin.register(SalePoint)
 class SalePointAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "type", "link")
-    raw_id_fields = ("type",)
-    list_filter = ("type",)
-
-
-@admin.register(SalePointType)
-class SalePointTypeAdmin(admin.ModelAdmin):
-    list_display = ("id", "name")
+    list_display = ("id", "name", "link",)
 
 
 @admin.register(SpecialOffer)

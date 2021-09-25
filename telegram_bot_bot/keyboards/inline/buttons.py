@@ -28,6 +28,10 @@ buttons = [payment_query, sale_point, balance, promotion, feedback_query, faq_qu
 owner_keyboard = types.InlineKeyboardMarkup()
 for button in buttons:
     owner_keyboard.row(button)
+manager_keyboard = owner_keyboard
+owner_keyboard.row(report_bug_query)
+owner_keyboard.row(solution_reference_query)
+owner_keyboard.row(feedback_query)
 register_keyboard = types.InlineKeyboardMarkup()
 register_keyboard.row(register_query)
 technical_specialist_keyboard = types.InlineKeyboardMarkup()
@@ -35,7 +39,6 @@ technical_specialist_keyboard.row(report_bug_query)
 technical_specialist_keyboard.row(faq_query)
 technical_specialist_keyboard.row(solution_reference_query)
 technical_specialist_keyboard.row(feedback_query)
-technical_specialist_keyboard.row(exit)
 yes_no_keyboard = types.InlineKeyboardMarkup()
 yes_no_keyboard.row(yes_query, no_query)
 promotion_keyboard = types.InlineKeyboardMarkup()

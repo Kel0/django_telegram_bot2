@@ -1,5 +1,5 @@
 from asgiref.sync import sync_to_async
-from .models import Client, FAQ, SpecialOffer, Franсhise, Role, BalanceHistory, ClientRequest
+from .models import Client, FAQ, SpecialOffer, Franchise, Role, BalanceHistory, ClientRequest
 import requests
 import csv
 import datetime
@@ -8,6 +8,7 @@ import xlsxwriter
 from pyexcel.cookbook import merge_all_to_a_book
 # import pyexcel.ext.xlsx # no longer required if you use pyexcel >= 0.2.2
 import glob
+import ftplib
 
 
 @sync_to_async
@@ -26,7 +27,7 @@ def request_register(data):
 
 
 @sync_to_async
-def request_top_up_balance(data):
+def request_to_manager(data, type):
     mess = f"Имя: {data['name']}\n" \
            f"Фамилия: {data['surname']}\n" \
            f"БИН: {data['bin']}\n" \
@@ -34,7 +35,21 @@ def request_top_up_balance(data):
            f"Реквизиты: {data['requisites']}\n" \
            f"Сумма: {data['balance_amount']}\n"
     ClientRequest.objects.create(
-        request_type="top_up_balance", request_info=mess,
+        request_type=type, request_info=mess,
+        info=json.dumps(data), telegram_id=data["telegram_id"]
+    )
+
+
+@sync_to_async
+def request_to_promotion(data):
+    mess = f"Имя: {data['name']}\n" \
+           f"Фамилия: {data['surname']}\n" \
+           f"БИН: {data['bin']}\n" \
+           f"Франшиза: {data['franchise']}\n" \
+           f"Реквизиты: {data['requisites']}\n" \
+           f"Акция: {data['promotion']}\n"
+    ClientRequest.objects.create(
+        request_type="promotion", request_info=mess,
         info=json.dumps(data), telegram_id=data["telegram_id"]
     )
 
@@ -48,6 +63,17 @@ def get_faq():
         mes = mes + f.answer + '\n'
 
     return mes
+
+
+@sync_to_async
+def get_franchise():
+    faqs = Franchise.objects.filter().values_list("name", flat=True)
+    return faqs
+
+
+@sync_to_async
+def get_special_offers():
+    return SpecialOffer.objects.filter().values_list("name", flat=True)
 
 
 @sync_to_async
@@ -86,7 +112,7 @@ def top_up_balance_method(telegram_id, amount):
 def save_client(data):
     # r = requests.get(f'https://antcall.bitrix24.ru/rest/1/st30venc8oq24nrt/crm.lead.add.json?FIELDS[TITLE]=Новый лид&FIELDS[NAME]={data["name"]}&FIELDS[LAST_NAME]={data["surname"]}&FIELDS[SCHET]=0&FIELDS[BIN]={data["BIN"]}&FIELDS[POSITION]=worker')
     role = Role.objects.get_or_create(role=data["role"])[0]
-    franchise = Franсhise.objects.get_or_create(name=data["franchise"], bin=data["bin"])[0]
+    franchise = Franchise.objects.get_or_create(name=data["franchise"], bin=data["bin"])[0]
     if not Client.objects.filter(telegram_id=data["telegram_id"]).first():
         Client.objects.create(
             name=data["name"],
@@ -121,7 +147,7 @@ def balance_history_method(number, telegram_id):
     r = 2
     for b in bal:
         csvstr = datetime.datetime.strftime(b.date, '%d/%m/%Y')
-        worksheet.write(f'A{r}', b.type)
+        worksheet.write(f'A{r}', "Пополнение" if b.type == "up" else "Списание")
         worksheet.write(f'B{r}', csvstr)
         worksheet.write(f'C{r}', b.amount)
         r += 1

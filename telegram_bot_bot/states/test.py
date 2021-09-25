@@ -13,6 +13,7 @@ class Test(StatesGroup):
     admin_check = State()
     wait = State()
     payment_reciept = State()
+    payment = State()
     balance_amount = State()
     top_up_balance = State()
     balance_history_count = State()

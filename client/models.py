@@ -5,12 +5,13 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save
 import requests, json
 from telegram_bot_bot.data import config
+from ftp import send_to_ftp
+import asyncio
 
 
-class Franсhise(models.Model):
+class Franchise(models.Model):
     name = models.CharField(max_length=1024)
     balance = models.IntegerField(null=True, blank=True, default=0)
-    bin = models.CharField(max_length=255)
 
     def __str__(self):
         return f"{self.name}"
@@ -23,6 +24,14 @@ class Role(models.Model):
         return f"{self.role}"
 
 
+class SpecialOffer(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.name}"
+
+
 class Client(models.Model):
     name = models.CharField(max_length=255)
     surname = models.CharField(max_length=255)
@@ -30,20 +39,19 @@ class Client(models.Model):
     address = models.CharField(max_length=255, null=True, blank=True)
     royalty = models.IntegerField(null=True, blank=True, default=50)
     royalty_expires = models.DateField(null=True, blank=True)
-    franchise = models.ForeignKey(Franсhise, on_delete=models.CASCADE, null=True, blank=True, related_name="franchise")
+    franchise = models.ForeignKey(Franchise, on_delete=models.CASCADE, null=True, blank=True, related_name="franchise")
     requisites = models.CharField(max_length=512, default=0)
     role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
     info = JSONField(blank=True, null=True, editable=False)
+    promotions = models.ManyToManyField(SpecialOffer)
+    bin = models.CharField(max_length=255, null=True, blank=True)
+
+
     def __str__(self):
         return f"{self.name} {self.surname}"
 
 
-class SpecialOffer(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
 
-    def __str__(self):
-        return f"{self.name}"
 
 
 CHOICES = (
@@ -54,7 +62,7 @@ CHOICES = (
 
 class BalanceHistory(models.Model):
     amount = models.IntegerField(null=True, blank=True, default=0)
-    franchise = models.ForeignKey(Franсhise, on_delete=models.CASCADE, null=True, blank=True, related_name="franchisee")
+    franchise = models.ForeignKey(Franchise, on_delete=models.CASCADE, null=True, blank=True, related_name="franchisee")
     date = models.DateField(auto_now_add=True)
     type = models.CharField(max_length=64, choices=CHOICES)
 
@@ -64,17 +72,11 @@ class FAQ(models.Model):
     answer = models.CharField(max_length=1024)
 
 
-class SalePointType(models.Model):
-    name = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.name
-
-
 class SalePoint(models.Model):
     name = models.CharField(max_length=255)
-    type = models.ForeignKey(SalePointType, on_delete=models.CASCADE, null=True, blank=True, related_name="type")
     link = models.CharField(max_length=512, blank=True, null=True)
+    charge = models.IntegerField(null=True, blank=True)
+    promo = models.ManyToManyField(SpecialOffer)
 
     def __str__(self):
         return self.name
@@ -82,7 +84,9 @@ class SalePoint(models.Model):
 
 REQUEST_TYPES = (
         ('registration', 'Регистрация'),
-        ('top_up_balance', 'Пополнение баланса')
+        ('top_up_balance', 'Пополнение баланса'),
+        ('payment', 'Выставить счет об оплате'),
+        ('promotion', 'Заявка на акцию')
     )
 STATUS_TYPES = (
         ('accepted', 'Принято'),
@@ -112,7 +116,7 @@ def client_request_signal(sender, instance, **kwargs):
         data = json.loads(instance.info)
         if instance.request_type == "registration":
             role = Role.objects.get(role=data["role"])
-            franchise = Franсhise.objects.get_or_create(name=data["franchise"], bin=data["bin"])[0]
+            franchise = Franchise.objects.get(name=data["franchise"])
             if not Client.objects.filter(telegram_id=data["telegram_id"]).first():
                 Client.objects.create(
                     name=data["name"],
@@ -135,5 +139,24 @@ def client_request_signal(sender, instance, **kwargs):
             BalanceHistory.objects.create(franchise=franchise, amount=amount, type="up")
             text = f"Баланс пополнен на {amount}\n"
             text += instance.comment
+        elif instance.request_type == "payment":
+            cl = Client.objects.filter(telegram_id=data["telegram_id"]).first()
+            f = open(f"oneC{data['telegram_id']}.txt", "w", encoding="utf-8")
+            f.write(f"Имя: {data['name']}\n")
+            f.write(f"Фамилия: {data['surname']}\n")
+            f.write(f"Франшиза: {data['franchise']}\n")
+            f.write(f"Реквизиты: {data['requisites']}\n")
+            f.write(f"Сумма: {data['balance_amount']}\n")
+            f.write(f"Роялти: {cl.royalty}")
+            f.close()
+            send_to_ftp(data["telegram_id"])
+            # upload_from_ftp(data["telegram_id"])
+            text = "Одобрено\n Ожидайте ответа"
+            # f = open(f"oneC{instance.telegram_id}.txt", "rb")
+            # requests.get(
+            #     f"https://api.telegram.org/bot{config.BOT_TOKEN}/sendDocument?chat_id={instance.telegram_id}&file={f}")
+        elif instance.request_type == "promotion":
+            text = "Ожидайте"
+            pass
     requests.get(
         f"https://api.telegram.org/bot{config.BOT_TOKEN}/sendMessage?chat_id={instance.telegram_id}&text={text}")
