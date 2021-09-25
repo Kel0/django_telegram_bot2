@@ -1,7 +1,7 @@
 import time
 import ftplib
 import asyncio
-# with ftplib.FTP('ftp.almacloud.kz', 'umag', 'HCAJLzLd3XcK') as ftp:
+# with ftplib.FTP('HOST', 'LOGIN', 'PASSWORD') as ftp:
 #     ftp.cwd("input")
 #     print(ftp.dir())
 
