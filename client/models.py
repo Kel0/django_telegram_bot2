@@ -146,7 +146,7 @@ def client_request_signal(sender, instance, **kwargs):
             f.write(f"Фамилия: {data['surname']}\n")
             f.write(f"Франшиза: {data['franchise']}\n")
             f.write(f"Реквизиты: {data['requisites']}\n")
-            f.write(f"Сумма: {data['balance_amount']}\n")
+            f.write(f"Сумма: {data.get('balance_amount', 0)}\n")
             f.write(f"Роялти: {cl.royalty}")
             f.close()
             send_to_ftp(data["telegram_id"])
