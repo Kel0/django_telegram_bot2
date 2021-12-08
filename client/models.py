@@ -115,7 +115,7 @@ def client_request_signal(sender, instance, **kwargs):
     else:
         data = json.loads(instance.info)
         if instance.request_type == "registration":
-            role = Role.objects.get(role=data["role"])
+            # role = Role.objects.get(role=data["role"])
             franchise = Franchise.objects.get(name=data["franchise"])
             if not Client.objects.filter(telegram_id=data["telegram_id"]).first():
                 Client.objects.create(
@@ -124,7 +124,7 @@ def client_request_signal(sender, instance, **kwargs):
                     telegram_id=data["telegram_id"],
                     address=data["address"],
                     franchise=franchise,
-                    role=role,
+                    # role=role,
                     requisites=data["requisites"],
                     info=json.dumps(data),
                 )
