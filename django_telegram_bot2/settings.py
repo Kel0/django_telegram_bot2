@@ -84,8 +84,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': "frdb",
-        'USER': "testuser",
-        'PASSWORD': "qwert",
+        'USER': "user1",
+        'PASSWORD': "12345",
         'HOST': "localhost",
         'PORT': '5432',
     }
